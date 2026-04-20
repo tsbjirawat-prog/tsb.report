@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard รายงานการเดินรถ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 text-center md:text-left border-b pb-6">
+            <h1 class="text-3xl font-bold text-slate-800">รายงานสรุปผลการดำเนินงานการเดินรถ</h1>
+            <p class="text-slate-500 mt-2">ข้อมูลสถิติผู้โดยสารแยกตามอู่ (มกราคม - กุมภาพันธ์ 2026)</p>
+        </header>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase">ผู้โดยสารรวมทั้งหมด</p>
+                <p class="text-3xl font-bold text-blue-600 mt-2" id="total-passengers">250 คน</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase">ค่าเฉลี่ยต่อเที่ยว</p>
+                <p class="text-3xl font-bold text-emerald-600 mt-2">13.15 คน</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase">จำนวนอู่ที่ให้บริการ</p>
+                <p class="text-3xl font-bold text-amber-600 mt-2">4 อู่หลัก</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Chart Section -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h2 class="text-xl font-semibold text-slate-800 mb-6 italic">สัดส่วนผู้โดยสารแยกตามพื้นที่ (Percentage)</h2>
+                <div class="relative h-64">
+                    <canvas id="locationChart"></canvas>
+                </div>
+                <div id="chartLegend" class="mt-6 grid grid-cols-2 gap-2 text-sm text-slate-600">
+                    <!-- Legend will be injected here -->
+                </div>
+            </div>
+
+            <!-- Table Section -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h2 class="text-xl font-semibold text-slate-800 mb-6">สรุปข้อมูลเชิงลึกรายอู่</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-slate-400 text-sm uppercase tracking-wider border-b">
+                                <th class="pb-3 font-semibold">อู่ / พื้นที่</th>
+                                <th class="pb-3 font-semibold text-right">จำนวนคน</th>
+                                <th class="pb-3 font-semibold text-right">สัดส่วน (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statsTable" class="divide-y divide-slate-100">
+                            <!-- Rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Note -->
+        <footer class="bg-blue-50 border border-blue-100 p-4 rounded-xl">
+            <p class="text-blue-800 text-sm">
+                <strong>ข้อสังเกต:</strong> ข้อมูลส่วนใหญ่ในพื้นที่ตลิ่งชันและเคหะธนบุรี มีสถานะ "ไม่ผ่าน" ในการประเมินเบื้องต้น ควรตรวจสอบมาตรฐานการเดินรถในลำดับถัดไป
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // ข้อมูลสรุปจากไฟล์ CSV (Processed Data)
+        const locationData = [
+            { name: 'ท่าอิฐ', passengers: 125, color: '#3b82f6' },
+            { name: 'ตลิ่งชัน', passengers: 80, color: '#10b981' },
+            { name: 'เคหะธนบุรี', passengers: 30, color: '#f59e0b' },
+            { name: 'เอกชัย', passengers: 15, color: '#ef4444' }
+        ];
+
+        const total = locationData.reduce((sum, item) => sum + item.passengers, 0);
+        document.getElementById('total-passengers').textContent = `${total} คน`;
+
+        // Render Chart
+        const ctx = document.getElementById('locationChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: locationData.map(d => d.name),
+                datasets: [{
+                    data: locationData.map(d => d.passengers),
+                    backgroundColor: locationData.map(d => d.color),
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                cutout: '70%'
+            }
+        });
+
+        // Render Table & Legend
+        const tableBody = document.getElementById('statsTable');
+        const legendDiv = document.getElementById('chartLegend');
+
+        locationData.forEach(item => {
+            const percent = ((item.passengers / total) * 100).toFixed(1);
+            
+            // Table row
+            const row = `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="py-4 font-medium text-slate-700">${item.name}</td>
+                    <td class="py-4 text-right text-slate-600">${item.passengers}</td>
+                    <td class="py-4 text-right">
+                        <span class="bg-slate-100 px-2 py-1 rounded text-xs font-bold text-slate-600">${percent}%</span>
+                    </td>
+                </tr>
+            `;
+            tableBody.innerHTML += row;
+
+            // Legend item
+            const legendItem = `
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 rounded-full" style="background-color: ${item.color}"></span>
+                    <span>${item.name} (${percent}%)</span>
+                </div>
+            `;
+            legendDiv.innerHTML += legendItem;
+        });
+    </script>
+</body>
+</html>
